@@ -1,0 +1,135 @@
+// script.js
+const root = document.getElementById('root');
+
+let pickers = [{ name: '', units: 0 }];
+let packers = [{ name: '', units: 0 }];
+let results = null;
+
+function createInputGroup(role, index) {
+  const group = document.createElement('div');
+  group.className = 'input-group';
+
+  const nameInput = document.createElement('input');
+  nameInput.placeholder = 'Name';
+  nameInput.value = role[index].name;
+  nameInput.addEventListener('input', (e) => {
+    role[index].name = e.target.value;
+  });
+
+  const unitInput = document.createElement('input');
+  unitInput.type = 'number';
+  unitInput.placeholder = 'Units';
+  unitInput.value = role[index].units;
+  unitInput.addEventListener('input', (e) => {
+    role[index].units = Number(e.target.value);
+  });
+
+  group.appendChild(nameInput);
+  group.appendChild(unitInput);
+
+  return group;
+}
+
+function render() {
+  root.innerHTML = '';
+
+  const title = document.createElement('h1');
+  title.textContent = 'Daily Bonus Calculator';
+  root.appendChild(title);
+
+  const pickerCard = document.createElement('div');
+  pickerCard.className = 'card';
+  const pickerHeader = document.createElement('h2');
+  pickerHeader.textContent = 'Pickers';
+  pickerCard.appendChild(pickerHeader);
+  pickers.forEach((_, i) => {
+    pickerCard.appendChild(createInputGroup(pickers, i));
+  });
+  const addPickerBtn = document.createElement('button');
+  addPickerBtn.textContent = 'Add Picker';
+  addPickerBtn.onclick = () => {
+    pickers.push({ name: '', units: 0 });
+    render();
+  };
+  pickerCard.appendChild(addPickerBtn);
+  root.appendChild(pickerCard);
+
+  const packerCard = document.createElement('div');
+  packerCard.className = 'card';
+  const packerHeader = document.createElement('h2');
+  packerHeader.textContent = 'Packers';
+  packerCard.appendChild(packerHeader);
+  packers.forEach((_, i) => {
+    packerCard.appendChild(createInputGroup(packers, i));
+  });
+  const addPackerBtn = document.createElement('button');
+  addPackerBtn.textContent = 'Add Packer';
+  addPackerBtn.onclick = () => {
+    packers.push({ name: '', units: 0 });
+    render();
+  };
+  packerCard.appendChild(addPackerBtn);
+  root.appendChild(packerCard);
+
+  const calcBtn = document.createElement('button');
+  calcBtn.textContent = 'Calculate Bonus';
+  calcBtn.onclick = () => {
+    const totalPickerUnits = pickers.reduce((sum, p) => sum + Number(p.units), 0);
+    const totalPackerUnits = packers.reduce((sum, p) => sum + Number(p.units), 0);
+
+    const pickerResults = pickers.map(p => ({
+      name: p.name,
+      bonus: totalPickerUnits > 0 ? ((p.units / totalPickerUnits) * 20).toFixed(2) : '0.00'
+    }));
+
+    const packerResults = packers.map(p => ({
+      name: p.name,
+      bonus: totalPackerUnits > 0 ? ((p.units / totalPackerUnits) * 30).toFixed(2) : '0.00'
+    }));
+
+    results = { pickerResults, packerResults };
+    render();
+  };
+  root.appendChild(calcBtn);
+
+  if (results) {
+    const resultSection = document.createElement('div');
+    const header = document.createElement('h2');
+    header.textContent = 'Results';
+    resultSection.appendChild(header);
+
+    results.pickerResults.forEach(p => {
+      const line = document.createElement('div');
+      line.textContent = `${p.name} (Picker): €${p.bonus}`;
+      resultSection.appendChild(line);
+    });
+
+    results.packerResults.forEach(p => {
+      const line = document.createElement('div');
+      line.textContent = `${p.name} (Packer): €${p.bonus}`;
+      resultSection.appendChild(line);
+    });
+
+    const downloadBtn = document.createElement('button');
+    downloadBtn.textContent = 'Download CSV';
+    downloadBtn.onclick = () => {
+      const data = [
+        ['Name', 'Role', 'Bonus (€)'],
+        ...results.pickerResults.map(p => [p.name, 'Picker', p.bonus]),
+        ...results.packerResults.map(p => [p.name, 'Packer', p.bonus])
+      ];
+      const csvContent = 'data:text/csv;charset=utf-8,' + data.map(e => e.join(',')).join('\n');
+      const encodedUri = encodeURI(csvContent);
+      const link = document.createElement('a');
+      link.setAttribute('href', encodedUri);
+      link.setAttribute('download', 'daily_bonus.csv');
+      document.body.appendChild(link);
+      link.click();
+    };
+    resultSection.appendChild(downloadBtn);
+
+    root.appendChild(resultSection);
+  }
+}
+
+render();
